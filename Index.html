@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<link rel="manifest" href="manifest.json">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#000000">
+<link rel="apple-touch-icon" href="icon.png">
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ambika Winders Pro</title>
+    <style>
+        :root { --red: #d63031; --blue: #0984e3; --dark: #2d3436; --green: #2ecc71; }
+        body { font-family: sans-serif; margin: 0; padding: 10px; background: #dfe6e9; }
+        .container { max-width: 500px; margin: auto; }
+        .no-print { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        
+        /* Stats Dashboard */
+        .dash { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .stat { background: var(--dark); color: white; padding: 10px; border-radius: 8px; text-align: center; }
+        .stat b { display: block; color: var(--green); font-size: 18px; }
+
+        input, select { width: 100%; padding: 12px; margin-bottom: 8px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        .btn-add { background: var(--blue); color: white; width: 100%; padding: 15px; border: none; border-radius: 8px; font-weight: bold; }
+        .btn-print { background: var(--red); color: white; width: 100%; padding: 15px; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; margin-top: 10px; }
+
+        /* Invoice Style */
+        .invoice { background: white; padding: 20px; border: 1px solid #ddd; min-height: 600px; }
+        .blessing { text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 5px; }
+        .contact-header { display: flex; justify-content: space-between; border-top: 2px solid var(--red); border-bottom: 2px solid var(--red); padding: 5px 0; font-size: 11px; font-weight: bold; }
+        
+        .logo-area { text-align: center; margin: 15px 0; }
+        .logo-area img { width: 85px; height: 85px; border-radius: 50%; object-fit: cover; border: 1px solid #eee; }
+        
+        .shop-name { color: var(--red); font-size: 22px; font-weight: 900; margin: 0; text-align: center; }
+        .tagline { color: var(--blue); font-size: 12px; font-weight: bold; text-align: center; margin-bottom: 10px; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px; }
+        th { background: #f8f9fa; border: 1px solid #ddd; padding: 8px; text-align: left; }
+        td { border: 1px solid #eee; padding: 8px; }
+
+        .total-row { font-size: 20px; font-weight: bold; color: var(--red); display: flex; justify-content: space-between; margin-top: 20px; border-top: 2px solid #eee; padding-top: 10px; }
+        .footer { text-align: center; font-size: 9px; color: #555; margin-top: 40px; border-top: 1px solid #eee; padding-top: 10px; }
+
+        @media print { .no-print { display: none; } .invoice { border: none; padding: 0; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="no-print">
+        <div class="dash">
+            <div class="stat">MONTHLY<b id="mTotal">₹0</b></div>
+            <div class="stat">YEARLY<b id="yTotal">₹0</b></div>
+        </div>
+        <input type="text" id="cName" placeholder="Customer Name">
+        <input type="text" id="iDesc" placeholder="Work Description">
+        <div style="display:flex; gap:5px;">
+            <input type="number" id="iRate" placeholder="Price ₹" style="flex:2">
+            <select id="iGst" style="flex:1">
+                <option value="18">18% GST</option>
+                <option value="12">12% GST</option>
+                <option value="5">5% GST</option>
+                <option value="0">0% GST</option>
+            </select>
+        </div>
+        <button class="btn-add" onclick="addItem()">+ ADD ITEM</button>
+        <button class="btn-print" onclick="saveAndPrint()">PRINT & SAVE</button>
+    </div>
+
+    <div class="invoice">
+        <div class="blessing">॥ जय मल्हार ॥</div>
+        <div class="contact-header">
+            <div>Vaibhav Kale<br>9673519166</div>
+            <div style="text-align: right;">Sunil Kale<br>9623230032</div>
+        </div>
+        <div class="logo-area"><img src="logo.png" onerror="this.style.display='none'"></div>
+        <div class="shop-name">AMBIKA WINDERS & ELECTRICALS</div>
+        <div class="tagline">SALES & SERVICES</div>
+        <div style="font-size:12px; margin:10px 0;"><b>Customer:</b> <span id="dispC">________________</span></div>
+        <div style="display:flex; justify-content:space-between; font-size:10px; margin-bottom:10px;">
+            <span>Bill No: <span id="dispID"></span></span>
+            <span>Date: <span id="dispDate"></span></span>
+        </div>
+        <table>
+            <thead><tr><th>Work</th><th>GST</th><th>Total</th></tr></thead>
+            <tbody id="billBody"></tbody>
+        </table>
+        <div class="total-row"><span>Grand Total:</span><span id="dispTotal">₹0.00</span></div>
+        <div class="footer">
+            <b>Chakrapani Vasahat, Shambhu Raje Colony No.3,</b><br>
+            New Bhosari-Alandi Bypass Road, Bhosari, Pune-411039
+        </div>
+    </div>
+</div>
+
+<script>
+    let items = [];
+    let records = JSON.parse(localStorage.getItem('ambika_pro_data')) || [];
+
+    window.onload = () => {
+        document.getElementById('dispDate').innerText = new Date().toLocaleDateString('en-IN');
+        document.getElementById('dispID').innerText = 'AW-' + Math.floor(1000 + Math.random() * 9000);
+        refreshStats();
+    };
+
+    function addItem() {
+        const d = document.getElementById('iDesc').value;
+        const r = parseFloat(document.getElementById('iRate').value);
+        const g = parseFloat(document.getElementById('iGst').value);
+        if(d && r >= 0) {
+            const total = r + (r * g / 100);
+            items.push({ d, r, g, total });
+            render();
+            document.getElementById('iDesc').value = '';
+            document.getElementById('iRate').value = '';
+        }
+    }
+
+    function render() {
+        const b = document.getElementById('billBody');
+        b.innerHTML = ''; let t = 0;
+        items.forEach(i => {
+            t += i.total;
+            b.innerHTML += `<tr><td>${i.d}</td><td>${i.g}%</td><td>₹${i.total.toFixed(0)}</td></tr>`;
+        });
+        document.getElementById('dispTotal').innerText = '₹' + t.toFixed(2);
+        document.getElementById('dispC').innerText = document.getElementById('cName').value || "Cash Customer";
+    }
+
+    function saveAndPrint() {
+        if(items.length === 0) return alert("Add items first");
+        const total = parseFloat(document.getElementById('dispTotal').innerText.replace('₹',''));
+        const now = new Date();
+        records.push({ amt: total, m: now.getMonth(), y: now.getFullYear() });
+        localStorage.setItem('ambika_pro_data', JSON.stringify(records));
+        window.print();
+        location.reload();
+    }
+
+    function refreshStats() {
+        const now = new Date();
+        const m = records.filter(r => r.m === now.getMonth() && r.y === now.getFullYear()).reduce((a, b) => a + b.amt, 0);
+        const y = records.filter(r => r.y === now.getFullYear()).reduce((a, b) => a + b.amt, 0);
+        document.getElementById('mTotal').innerText = '₹' + m.toLocaleString('en-IN');
+        document.getElementById('yTotal').innerText = '₹' + y.toLocaleString('en-IN');
+    }
+</script>
+</body>
+</html>
